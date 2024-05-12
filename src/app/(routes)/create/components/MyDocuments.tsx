@@ -1,6 +1,6 @@
 "use client";
 import { useDocumentStore, useSingleDocumentStore } from "@/lib/store";
-import { Button, Container, useDisclosure } from "@chakra-ui/react";
+import { Button, Container, useDisclosure, useToast } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 import { FaTrashAlt } from "react-icons/fa";
 import {
@@ -12,6 +12,9 @@ import {
   ModalBody,
   ModalCloseButton,
 } from "@chakra-ui/react";
+import { collection, deleteDoc, doc } from "firebase/firestore";
+import { useUser } from "@clerk/nextjs";
+import { db } from "../../../../../firebase";
 
 export default function MyDocuments() {
   const documents = useDocumentStore((state) => state.documents);
@@ -19,11 +22,43 @@ export default function MyDocuments() {
   const setFilename = useSingleDocumentStore((state) => state.setFileName);
   const router = useRouter();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const user = useUser();
+  const toast = useToast();
 
   const handleDelete = () => {
     console.log("delete");
   };
-  const deleteDocument = async (id: string) => {};
+
+  const deleteDocument = async (docId: string) => {
+    const userEmail = user.user?.primaryEmailAddress?.emailAddress;
+    try {
+      if (userEmail) {
+        const userDocRef = doc(db, "userDocs", userEmail);
+
+        // Create a reference to the docs subcollection within the user document
+        const subcollectionRef = collection(userDocRef, "docs");
+        await deleteDoc(doc(subcollectionRef, docId));
+        toast({
+          title: "Success",
+          description: "Document deleted successfully",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+
+        // Rest of your code...
+      }
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete document",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
 
   const navigateToEditPage = (id: string, fileName: string) => {
     router.push(`/create/${id}`);
@@ -68,7 +103,7 @@ export default function MyDocuments() {
                   <Button
                     leftIcon={<FaTrashAlt />}
                     colorScheme="red"
-                    onClick={onOpen}
+                    onClick={() => deleteDocument(item.docId)}
                   >
                     Delete
                   </Button>

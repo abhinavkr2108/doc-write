@@ -29,6 +29,7 @@ import {
   FieldValue,
   Timestamp,
   getDocs,
+  updateDoc,
 } from "firebase/firestore";
 import { useUser } from "@clerk/nextjs";
 import { useToast } from "@chakra-ui/react";
@@ -148,6 +149,8 @@ export default function NewDocument() {
           id: data.id,
           docId: docRef.id,
         };
+
+        await updateDoc(docRef, { docId: docRef.id });
         setDocuments((prevDocuments) => [...prevDocuments, newDocuments]);
 
         toast({
